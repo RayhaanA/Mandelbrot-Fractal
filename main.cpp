@@ -48,7 +48,7 @@ int main()
 	float scale = 1.0f;
 
 	//Sets max number of iterations, varies based on the scale value
-	unsigned int maxIterations = 500;
+	unsigned int maxIterations = 50;
 
 	//Create mandelbrot image
 	sf::Image image;
@@ -92,28 +92,28 @@ int main()
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 		{
 			if(view.getCenter().x >= 0)
-				centerX -= 0.25 * scale;
+				centerX -= 0.25;
 			view.setCenter(sf::Vector2f(centerX, centerY));
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 		{
 			if(view.getCenter().x <= WIDTH)
-				centerX += 0.25 * scale;
+				centerX += 0.25;
 			view.setCenter(sf::Vector2f(centerX, centerY));
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
 		{
 			if (view.getCenter().y >= 0)
-				centerY -= 0.25 * scale;
+				centerY -= 0.25;
 			view.setCenter(sf::Vector2f(centerX, centerY));
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
 		{
 			if (view.getCenter().y <= HEIGHT)
-				centerY += 0.25 * scale;
+				centerY += 0.25;
 			view.setCenter(sf::Vector2f(centerX, centerY));
 		}
 		
@@ -133,8 +133,8 @@ sf::Image createImage(unsigned int maxIterations, sf::Color colours[], sf::Image
 		for (int col = 0; col < WIDTH; col++)
 		{
 			//Calculate the c value within the mandelbrot set based on the pixel location
-			double realC = (col - WIDTH / 2.0) * 4.0 / WIDTH / scale;
-			double imagC = (row - HEIGHT / 2.0) * 4.0 / WIDTH / scale;
+			double rC = (col - WIDTH / 2.0) * 4.0 / WIDTH / scale;
+			double iC = (row - HEIGHT / 2.0) * 4.0 / WIDTH / scale;
 
 			//Initialize the values for the next iteration of the set
 			double x = 0, y = 0;
@@ -145,8 +145,8 @@ sf::Image createImage(unsigned int maxIterations, sf::Color colours[], sf::Image
 			while (x*x + y*y <= 4 && iteration < maxIterations)
 			{
 				//Find the next set of values for the set 
-				double newX = x*x - y*y + realC;
-				y = 2 * x*y + imagC;
+				double newX = x*x - y*y + rC;
+				y = 2 * x*y + iC;
 				x = newX;
 
 				iteration++;
