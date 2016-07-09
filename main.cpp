@@ -4,7 +4,7 @@
 #include <iostream>
 
 //Global window dimensions
-const unsigned int HEIGHT = 750;
+const unsigned int HEIGHT = 600;
 const unsigned int WIDTH = 800;
 
 int main()
@@ -29,11 +29,8 @@ int main()
 	colours[14] = sf::Color(153, 87, 0);
 	colours[15] = sf::Color(106, 52, 3);
 
-	//Var to store final colour index
-	int * selection = new int(0);
-
-	//Function to create image
-	sf::Image createImage(unsigned int maxIterations, sf::Color colours[], sf::Image image, int * selection, float scale);
+	//Function to create mandelbrot fractal
+	sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::Image image, double minRe, double maxRe, double minIm, double maxIm);
 
 	//Initialize window
 	sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Mandelbrot Fractals", sf::Style::Close);
@@ -42,21 +39,38 @@ int main()
 	sf::Sprite mandelbrot;
 	sf::Texture texture;
 
-	//Modifiable window view, plus variable for scale based on zoom -- affects translation speed
-	float centerX = window.getDefaultView().getCenter().x, centerY = window.getDefaultView().getCenter().y;
-	sf::View view(window.getDefaultView());
-	float scale = 1.0f;
+	//Text for displaying info on window
+	
+	// Load font
+	sf::Font font;
+	font.loadFromFile("./res/Forque.ttf");
+	
+	// Create a text
+	sf::Text mouseXText("", font);
+	mouseXText.setCharacterSize(16);
+	mouseXText.setColor(sf::Color::White);
+	mouseXText.setPosition(0, 0);
+	sf::Text mouseYText("", font);
+	mouseYText.setCharacterSize(16);
+	mouseYText.setColor(sf::Color::White);
+	mouseYText.setPosition(0, 16);
 
 	//Sets max number of iterations, varies based on the scale value
-	unsigned int maxIterations = 50;
+	auto maxIterations = 60;
+
+	//Virtual coordinate extremities
+	auto minRe = -2.0;
+	auto maxRe = 1.0;
+	auto minIm = -1.125;
+	auto maxIm = 1.125;
 
 	//Create mandelbrot image
 	sf::Image image;
 	image.create(WIDTH, HEIGHT, sf::Color::Black);
-	image = createImage(maxIterations, colours, image, selection, scale);
+	image = createMandelbrot(maxIterations, colours, image, minRe, maxRe, minIm, maxIm);
 
 	//bool so that sprite isn't constantly updated
-	bool texturesSet = false;
+	bool textureSet = false;
 
 	while (window.isOpen())
 	{
@@ -66,100 +80,98 @@ int main()
 		{
 			if (event.type == sf::Event::Closed)
 				window.close();
+
+			if (event.type == sf::Event::KeyPressed)
+			{
+				if (event.key.code == sf::Keyboard::R)
+				{
+					std::cout << "Resetting image... " << std::endl;;
+					textureSet = false;
+					window.clear(sf::Color::Black);
+					image.create(WIDTH, HEIGHT, sf::Color::Black);
+					minRe = -2.0;
+					maxRe = 1.0;
+					minIm = -1.2;
+					maxIm = 1.2;
+					image = createMandelbrot(maxIterations, colours, image, minRe, maxRe, minIm, maxIm);
+				}
+
+
+				if (event.key.code == sf::Keyboard::Z)
+				{
+					std::cout << "Zooming in... " << std::endl;;
+					textureSet = false;
+					window.clear(sf::Color::Black);
+					image.create(WIDTH, HEIGHT, sf::Color::Black);
+					image = createMandelbrot(maxIterations, colours, image, minRe /= 2, maxRe /= 2, minIm /= 2, maxIm /= 2);
+				}
+			}
+
+
 		}
 
-		if (!texturesSet)
+		if (!textureSet)
 		{
 			texture.loadFromImage(image);
 			mandelbrot.setTexture(texture);
-			texturesSet = true;
+			textureSet = true;
 		}
 
-		//Clear window
-		window.clear(colours[*selection]);
+		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+		mouseXText.setString("x: " + std::to_string(minRe + mousePos.x * (maxRe - minRe) / WIDTH));
+		mouseYText.setString("y: " + std::to_string(maxIm - mousePos.y * (maxIm - minIm) / HEIGHT));
 
-		window.setView(view);
+		//Clear window and draw
+		window.clear(sf::Color::Black);
 		window.draw(mandelbrot);
+		window.draw(mouseXText);
+		window.draw(mouseYText);
 		window.display();
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Dash))
-			view.zoom(1.0005f);
-	
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Equal))
-			view.zoom(0.9995f);
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-		{
-			if(view.getCenter().x >= 0)
-				centerX -= 0.25;
-			view.setCenter(sf::Vector2f(centerX, centerY));
-		}
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-		{
-			if(view.getCenter().x <= WIDTH)
-				centerX += 0.25;
-			view.setCenter(sf::Vector2f(centerX, centerY));
-		}
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-		{
-			if (view.getCenter().y >= 0)
-				centerY -= 0.25;
-			view.setCenter(sf::Vector2f(centerX, centerY));
-		}
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-		{
-			if (view.getCenter().y <= HEIGHT)
-				centerY += 0.25;
-			view.setCenter(sf::Vector2f(centerX, centerY));
-		}
-		
 	}
-	delete selection;
-	selection = nullptr;
 	return 0;
 }
 
-//Function to create image was learned from Joni Salonen at http://jonisalonen.com/2013/lets-draw-the-mandelbrot-set/
-sf::Image createImage(unsigned int maxIterations, sf::Color colours[], sf::Image image, int * selection, float scale)
+//function to draw image
+sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::Image image, double minRe, double maxRe, double minIm, double maxIm)
 {
-	*selection = 0;
-	//Function creates the image pixel by pixel hence the nested for loop for the entire image
-	for (int row = 0; row < HEIGHT; row++)
+	std::cout << "Drawing image... " << std::endl;;
+	auto reFactor = (maxRe - minRe) / (WIDTH);
+	auto imFactor = (maxIm - minIm) / (HEIGHT);
+
+
+	for (auto y = 0; y < HEIGHT; y++)
 	{
-		for (int col = 0; col < WIDTH; col++)
+		auto cIm = maxIm - y * imFactor;
+	
+		for (auto x = 0; x < WIDTH; x++)
 		{
-			//Calculate the c value within the mandelbrot set based on the pixel location
-			double rC = (col - WIDTH / 2.0) * 4.0 / WIDTH / scale;
-			double iC = (row - HEIGHT / 2.0) * 4.0 / WIDTH / scale;
+			auto cRe = minRe + x * reFactor;
 
-			//Initialize the values for the next iteration of the set
-			double x = 0, y = 0;
-			int iteration = 0;
-
-			//Constraint is that the plotted values are within a circle of radius 2
-			//As defined in the mandelbrot set
-			while (x*x + y*y <= 4 && iteration < maxIterations)
+			auto zRe = cRe, zIm = cIm;
+			auto isInside = true;
+			auto iteration = 0;
+			
+			for (auto i = 0; i < maxIterations; i++)
 			{
-				//Find the next set of values for the set 
-				double newX = x*x - y*y + rC;
-				y = 2 * x*y + iC;
-				x = newX;
-
+				auto zRe2 = zRe*zRe, zIm2 = zIm*zIm;
+				
+				if (zRe2 + zIm2 > 4)
+				{
+					isInside = false;
+					break;
+				}
+				
+				zIm = 2 * zRe*zIm + cIm;
+				zRe = zRe2 - zIm2 + cRe;
+				
 				iteration++;
 			}
-
-			//Colour selection, uses the iteration value to choose the colour index
-			*selection = iteration % 16;
-
-			if (iteration < maxIterations)
-				image.setPixel(col, row, colours[*selection]);
+			if (isInside) 	
+				image.setPixel(x, y, sf::Color::Black);
 			else
-				image.setPixel(col, row, sf::Color::Black);
+				image.setPixel(x, y, colours[iteration % 16]);
 		}
 	}
+	std::cout << "Image drawn." << std::endl << std::endl;
 	return image;
 }
