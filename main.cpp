@@ -94,9 +94,11 @@ int main()
 					maxIm = 1.2;
 					image = createMandelbrot(maxIterations, colours, image, minRe, maxRe, minIm, maxIm);
 				}
+			}
 
-
-				if (event.key.code == sf::Keyboard::Z)
+			if (event.type == sf::Event::MouseButtonPressed)
+			{
+				if (event.mouseButton.button == sf::Mouse::Left)
 				{
 					std::cout << "Zooming in... " << std::endl;;
 					textureSet = false;
@@ -105,8 +107,6 @@ int main()
 					image = createMandelbrot(maxIterations, colours, image, minRe /= 2, maxRe /= 2, minIm /= 2, maxIm /= 2);
 				}
 			}
-
-
 		}
 
 		if (!textureSet)
@@ -116,9 +116,13 @@ int main()
 			textureSet = true;
 		}
 
-		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-		mouseXText.setString("x: " + std::to_string(minRe + mousePos.x * (maxRe - minRe) / WIDTH));
-		mouseYText.setString("y: " + std::to_string(maxIm - mousePos.y * (maxIm - minIm) / HEIGHT));
+		if ((sf::Mouse::getPosition(window).x < WIDTH + 1 && sf::Mouse::getPosition(window).x > -1) &&
+			sf::Mouse::getPosition(window).y < HEIGHT + 1 && sf::Mouse::getPosition(window).y > -1)
+		{
+			sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+			mouseXText.setString("x: " + std::to_string(minRe + mousePos.x * (maxRe - minRe) / WIDTH));
+			mouseYText.setString("y: " + std::to_string(maxIm - mousePos.y * (maxIm - minIm) / HEIGHT));
+		}
 
 		//Clear window and draw
 		window.clear(sf::Color::Black);
@@ -136,7 +140,6 @@ sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::
 	std::cout << "Drawing image... " << std::endl;;
 	auto reFactor = (maxRe - minRe) / (WIDTH);
 	auto imFactor = (maxIm - minIm) / (HEIGHT);
-
 
 	for (auto y = 0; y < HEIGHT; y++)
 	{
@@ -171,6 +174,7 @@ sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::
 				image.setPixel(x, y, colours[iteration % 16]);
 		}
 	}
+
 	std::cout << "Image drawn." << std::endl << std::endl;
 	return image;
 }
