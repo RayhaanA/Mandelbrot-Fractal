@@ -104,10 +104,7 @@ int main()
 					std::cout << "Resetting image... " << std::endl;
 					textureSet = false;
 					window.clear(sf::Color::Black);
-					minRe = -2.0;
-					maxRe = 1.0;
-					minIm = -1.2;
-					maxIm = 1.2;
+					minRe = -2.0, maxRe = 1.0, minIm = -1.2, maxIm = 1.2;
 					for (auto i = images.size() - 1; i > 0; i--)
 						images.pop_back();
 					std::cout << "Images reset\n\n";
@@ -118,10 +115,18 @@ int main()
 			{
 				if (event.mouseButton.button == sf::Mouse::Left)
 				{
-					std::cout << "Zooming in... " << std::endl;;
+					std::cout << "Zooming in... " << std::endl;
 					textureSet = false;
 					image = createMandelbrot(maxIterations, colours, image, minRe /= zoom, maxRe /= zoom, minIm /= zoom, maxIm /= zoom);
 					images.push_back(Image(image));
+				}
+
+				if (event.mouseButton.button == sf::Mouse::Right && images.size() > 1)
+				{
+					minRe *= 2,	maxRe *= 2, minIm *= 2,	maxIm *= 2;
+					std::cout << "Zooming out.\n\n";
+					textureSet = false;
+					images.pop_back();
 				}
 			}
 		}
