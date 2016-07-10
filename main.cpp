@@ -1,11 +1,20 @@
 #include "SFML\Window.hpp"
 #include "SFML\Graphics.hpp"
+#include <vector>
 #include <iostream>
 
 //Global window dimensions
 const unsigned int HEIGHT = 600;
 const unsigned int WIDTH = 800;
 
+//Image structure
+struct Image {
+	sf::Image image_;
+	Image(sf::Image image)
+	{
+		image_ = image;
+	}
+};
 int main()
 {
 	//Colour map gotten from user "5chdn" on stackoverflow from this thread:
@@ -28,6 +37,9 @@ int main()
 	colours[14] = sf::Color(153, 87, 0);
 	colours[15] = sf::Color(106, 52, 3);
 
+	//Container for holding previous fractal zoom images for quicker unzooming
+	std::vector<Image> images;
+
 	//Function to create mandelbrot fractal
 	sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::Image image, double minRe, double maxRe, double minIm, double maxIm);
 
@@ -44,7 +56,7 @@ int main()
 	sf::Font font;
 	font.loadFromFile("./res/Forque.ttf");
 	
-	// Create a text
+	// Create text fields for x and y mouse pos
 	sf::Text mouseXText("", font);
 	mouseXText.setCharacterSize(16);
 	mouseXText.setColor(sf::Color::White);
@@ -63,10 +75,15 @@ int main()
 	auto minIm = -1.125;
 	auto maxIm = 1.125;
 
+	//Zoom factor
+	auto zoom = 2;
+
 	//Create mandelbrot image
 	sf::Image image;
 	image.create(WIDTH, HEIGHT, sf::Color::Black);
 	image = createMandelbrot(maxIterations, colours, image, minRe, maxRe, minIm, maxIm);
+
+	images.push_back(Image(image));
 
 	//bool so that sprite isn't constantly updated
 	bool textureSet = false;
@@ -84,15 +101,16 @@ int main()
 			{
 				if (event.key.code == sf::Keyboard::R)
 				{
-					std::cout << "Resetting image... " << std::endl;;
+					std::cout << "Resetting image... " << std::endl;
 					textureSet = false;
 					window.clear(sf::Color::Black);
-					image.create(WIDTH, HEIGHT, sf::Color::Black);
 					minRe = -2.0;
 					maxRe = 1.0;
 					minIm = -1.2;
 					maxIm = 1.2;
-					image = createMandelbrot(maxIterations, colours, image, minRe, maxRe, minIm, maxIm);
+					for (auto i = images.size() - 1; i > 0; i--)
+						images.pop_back();
+					std::cout << "Images reset\n\n";
 				}
 			}
 
@@ -102,16 +120,15 @@ int main()
 				{
 					std::cout << "Zooming in... " << std::endl;;
 					textureSet = false;
-					window.clear(sf::Color::Black);
-					image.create(WIDTH, HEIGHT, sf::Color::Black);
-					image = createMandelbrot(maxIterations, colours, image, minRe /= 2, maxRe /= 2, minIm /= 2, maxIm /= 2);
+					image = createMandelbrot(maxIterations, colours, image, minRe /= zoom, maxRe /= zoom, minIm /= zoom, maxIm /= zoom);
+					images.push_back(Image(image));
 				}
 			}
 		}
 
 		if (!textureSet)
 		{
-			texture.loadFromImage(image);
+			texture.loadFromImage((images.back()).image_);
 			mandelbrot.setTexture(texture);
 			textureSet = true;
 		}
@@ -175,6 +192,6 @@ sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::
 		}
 	}
 
-	std::cout << "Image drawn." << std::endl << std::endl;
+	std::cout << "Image drawn.\n\n";
 	return image;
 }
