@@ -5,7 +5,7 @@
 
 //Global window dimensions
 const unsigned int HEIGHT = 600;
-const unsigned int WIDTH = 600;
+const unsigned int WIDTH = 800;
 
 //Image structure
 struct Image {
@@ -27,28 +27,11 @@ sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::
 //Function to calculate new bounds
 void changeBounds(sf::Vector2f mousePos, double & minRe, double & maxRe, double & minIm, double & maxIm, int zoom);
 
+//Colouring function
+sf::Color smoothRGB(int iter, int maxIter);
+
 int main()
 {
-	//Colour map gotten from user "5chdn" on stackoverflow from this thread:
-	//http://stackoverflow.com/questions/16500656/which-color-gradient-is-used-to-color-mandelbrot-in-wikipedia
-	sf::Color colours[16];
-	colours[0] = sf::Color(66, 30, 15);
-	colours[1] = sf::Color(25, 7, 26);
-	colours[2] = sf::Color(9, 1, 47);
-	colours[3] = sf::Color(4, 4, 73);
-	colours[4] = sf::Color(0, 7, 100);
-	colours[5] = sf::Color(12, 44, 138);
-	colours[6] = sf::Color(24, 82, 177);
-	colours[7] = sf::Color(57, 125, 209);
-	colours[8] = sf::Color(134, 181, 229);
-	colours[9] = sf::Color(211, 236, 248);
-	colours[10] = sf::Color(241, 233, 191);
-	colours[11] = sf::Color(248, 201, 95);
-	colours[12] = sf::Color(255, 170, 0);
-	colours[13] = sf::Color(204, 128, 0);
-	colours[14] = sf::Color(153, 87, 0);
-	colours[15] = sf::Color(106, 52, 3);
-
 	//Container for holding previous fractal zoom images for quicker unzooming
 	std::vector<Image> images;
 
@@ -76,15 +59,13 @@ int main()
 	mouseYText.setPosition(0, 16);
 
 	//Sets max number of iterations, varies based on the scale value
-	auto maxIterations = 100;
+	auto maxIterations = 500;
 
 	//Virtual coordinate extremities
 	auto minRe = -2.0;
 	auto maxRe = 1.0;
 	auto maxIm = HEIGHT * (maxRe - minRe) / WIDTH  / 2;
 	auto minIm = -maxIm;
-
-	std::cout << maxIm;
 
 	//Zoom factor
 	auto zoom = 2;
@@ -134,7 +115,7 @@ int main()
 					changeBounds(relMousePos, minRe, maxRe, minIm, maxIm, zoom);
 					image = createMandelbrot(maxIterations, colours, image, minRe, maxRe, minIm, maxIm);
 					images.push_back(Image(image, minRe, maxRe, minIm, maxIm));
-					std::cout << minRe << " " << maxRe << " " << minIm << " " << maxIm << "\n\n";
+					std::cout << relMousePos.x << "  " << relMousePos.y << "\n\n";
 				}
 
 				if (event.mouseButton.button == sf::Mouse::Right && images.size() > 1)
@@ -179,7 +160,6 @@ int main()
 	return 0;
 }
 
-//function to draw image
 sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::Image image, double minRe, double maxRe, double minIm, double maxIm)
 {
 	std::cout << "Drawing image... " << std::endl;;
@@ -197,9 +177,8 @@ sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::
 			auto zRe = cRe, zIm = cIm;
 			auto isInside = true;
 
-			//Colouring variables
+			//Colouring variable
 			auto iteration = 0;
-			auto finalZ = 0.0;
 			
 			for (auto i = 0; i < maxIterations; i++)
 			{
@@ -216,10 +195,10 @@ sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::
 				
 				iteration++;
 			}
-			if (isInside) 	
+			if (isInside)
 				image.setPixel(x, y, sf::Color::Black);
 			else
-				image.setPixel(x, y, colours[iteration % 16]);
+				image.setPixel(x, y, smoothRGB(iteration, maxIterations));
 		}
 	}
 
@@ -242,4 +221,17 @@ void changeBounds(sf::Vector2f mousePos, double & minRe, double & maxRe, double 
 	maxRe = mousePos.x + width / 2;
 	minIm = mousePos.y - height / 2;
 	maxIm = mousePos.y + height / 2;
+}
+
+sf::Color smoothRGB(int iter, int maxIter)
+{
+	double x = (double)iter / (double)maxIter;
+
+ 	// Polynomials for calculating rgb
+	// Polynomials from https://solarianprogrammer.com/2013/02/28/mandelbrot-set-cpp-11/
+	int r = (int)(9 * (1 - x) * x * x * x * 255);
+	int g = (int)(15 * (1 - x) * (1 - x) * x * x * 255);
+	int b = (int)(8.5 * (1 - x) * (1 - x)  *(1 - x) * x * 255);
+	
+	return sf::Color(r, g, b);
 }
