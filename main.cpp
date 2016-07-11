@@ -22,7 +22,7 @@ struct Image {
 };
 
 //Function to create mandelbrot fractal
-sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::Image image, double minRe, double maxRe, double minIm, double maxIm);
+sf::Image createMandelbrot(unsigned int maxIterations, sf::Image image, double minRe, double maxRe, double minIm, double maxIm);
 
 //Function to calculate new bounds
 void changeBounds(sf::Vector2f mousePos, double & minRe, double & maxRe, double & minIm, double & maxIm, int zoom);
@@ -76,7 +76,7 @@ int main()
 	//Create mandelbrot image
 	sf::Image image;
 	image.create(WIDTH, HEIGHT, sf::Color::Black);
-	image = createMandelbrot(maxIterations, colours, image, minRe, maxRe, minIm, maxIm);
+	image = createMandelbrot(maxIterations, image, minRe, maxRe, minIm, maxIm);
 
 	images.push_back(Image(image, minRe, maxRe, minIm, maxIm));
 
@@ -113,7 +113,7 @@ int main()
 					std::cout << "Zooming in... " << std::endl;
 					textureSet = false;
 					changeBounds(relMousePos, minRe, maxRe, minIm, maxIm, zoom);
-					image = createMandelbrot(maxIterations, colours, image, minRe, maxRe, minIm, maxIm);
+					image = createMandelbrot(maxIterations, image, minRe, maxRe, minIm, maxIm);
 					images.push_back(Image(image, minRe, maxRe, minIm, maxIm));
 					std::cout << relMousePos.x << "  " << relMousePos.y << "\n\n";
 				}
@@ -160,7 +160,7 @@ int main()
 	return 0;
 }
 
-sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::Image image, double minRe, double maxRe, double minIm, double maxIm)
+sf::Image createMandelbrot(unsigned int maxIterations, sf::Image image, double minRe, double maxRe, double minIm, double maxIm)
 {
 	std::cout << "Drawing image... " << std::endl;;
 	auto reFactor = (maxRe - minRe) / (WIDTH);
