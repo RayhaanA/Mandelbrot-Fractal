@@ -5,16 +5,28 @@
 
 //Global window dimensions
 const unsigned int HEIGHT = 600;
-const unsigned int WIDTH = 800;
+const unsigned int WIDTH = 600;
 
 //Image structure
 struct Image {
 	sf::Image image_;
-	Image(sf::Image image)
+	double minRe_, maxRe_, minIm_, maxIm_;
+	Image(sf::Image image, double minRe, double maxRe, double minIm, double maxIm)
 	{
 		image_ = image;
+		minRe_ = minRe;
+		maxRe_ = maxRe;
+		minIm_ = minIm;
+		maxIm_ = maxIm;
 	}
 };
+
+//Function to create mandelbrot fractal
+sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::Image image, double minRe, double maxRe, double minIm, double maxIm);
+
+//Function to calculate new bounds
+void changeBounds(sf::Vector2f mousePos, double & minRe, double & maxRe, double & minIm, double & maxIm, int zoom);
+
 int main()
 {
 	//Colour map gotten from user "5chdn" on stackoverflow from this thread:
@@ -40,9 +52,6 @@ int main()
 	//Container for holding previous fractal zoom images for quicker unzooming
 	std::vector<Image> images;
 
-	//Function to create mandelbrot fractal
-	sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::Image image, double minRe, double maxRe, double minIm, double maxIm);
-
 	//Initialize window
 	sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Mandelbrot Fractals", sf::Style::Close);
 
@@ -67,23 +76,28 @@ int main()
 	mouseYText.setPosition(0, 16);
 
 	//Sets max number of iterations, varies based on the scale value
-	auto maxIterations = 60;
+	auto maxIterations = 100;
 
 	//Virtual coordinate extremities
 	auto minRe = -2.0;
 	auto maxRe = 1.0;
-	auto minIm = -1.125;
-	auto maxIm = 1.125;
+	auto maxIm = HEIGHT * (maxRe - minRe) / WIDTH  / 2;
+	auto minIm = -maxIm;
+
+	std::cout << maxIm;
 
 	//Zoom factor
 	auto zoom = 2;
+	
+	//Scaled mouse position
+	sf::Vector2f relMousePos;
 
 	//Create mandelbrot image
 	sf::Image image;
 	image.create(WIDTH, HEIGHT, sf::Color::Black);
 	image = createMandelbrot(maxIterations, colours, image, minRe, maxRe, minIm, maxIm);
 
-	images.push_back(Image(image));
+	images.push_back(Image(image, minRe, maxRe, minIm, maxIm));
 
 	//bool so that sprite isn't constantly updated
 	bool textureSet = false;
@@ -117,17 +131,24 @@ int main()
 				{
 					std::cout << "Zooming in... " << std::endl;
 					textureSet = false;
-					image = createMandelbrot(maxIterations, colours, image, minRe /= zoom, maxRe /= zoom, minIm /= zoom, maxIm /= zoom);
-					images.push_back(Image(image));
+					changeBounds(relMousePos, minRe, maxRe, minIm, maxIm, zoom);
+					image = createMandelbrot(maxIterations, colours, image, minRe, maxRe, minIm, maxIm);
+					images.push_back(Image(image, minRe, maxRe, minIm, maxIm));
+					std::cout << minRe << " " << maxRe << " " << minIm << " " << maxIm << "\n\n";
 				}
 
 				if (event.mouseButton.button == sf::Mouse::Right && images.size() > 1)
 				{
-					minRe *= 2,	maxRe *= 2, minIm *= 2,	maxIm *= 2;
 					std::cout << "Zooming out.\n\n";
 					textureSet = false;
 					images.pop_back();
+					minRe = images.back().minRe_;
+					maxRe = images.back().maxRe_;
+					minIm = images.back().minIm_;
+					maxIm = images.back().maxIm_;
 				}
+
+				std::cout << images.size() << " images stacked.\n\n";
 			}
 		}
 
@@ -142,8 +163,10 @@ int main()
 			sf::Mouse::getPosition(window).y < HEIGHT + 1 && sf::Mouse::getPosition(window).y > -1)
 		{
 			sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-			mouseXText.setString("x: " + std::to_string(minRe + mousePos.x * (maxRe - minRe) / WIDTH));
-			mouseYText.setString("y: " + std::to_string(maxIm - mousePos.y * (maxIm - minIm) / HEIGHT));
+			relMousePos.x = images.back().minRe_ + mousePos.x * (images.back().maxRe_ - images.back().minRe_) / WIDTH;
+			relMousePos.y = images.back().maxIm_ - mousePos.y * (images.back().maxIm_ - images.back().minIm_) / HEIGHT;
+			mouseXText.setString("x: " + std::to_string(relMousePos.x));
+			mouseYText.setString("y: " + std::to_string(relMousePos.y));
 		}
 
 		//Clear window and draw
@@ -173,7 +196,10 @@ sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::
 
 			auto zRe = cRe, zIm = cIm;
 			auto isInside = true;
+
+			//Colouring variables
 			auto iteration = 0;
+			auto finalZ = 0.0;
 			
 			for (auto i = 0; i < maxIterations; i++)
 			{
@@ -199,4 +225,21 @@ sf::Image createMandelbrot(unsigned int maxIterations, sf::Color colours[], sf::
 
 	std::cout << "Image drawn.\n\n";
 	return image;
+}
+
+void changeBounds(sf::Vector2f mousePos, double & minRe, double & maxRe, double & minIm, double & maxIm, int zoom)
+{
+	//Current plane dimensions
+	auto width = maxRe - minRe;
+	auto height = maxIm - minIm;
+
+	//New plane dimension (makes it smaller by a factor of zoom)
+	width /= zoom;
+	height /= zoom;
+
+	//Set new bounds on complex plane
+	minRe = mousePos.x - width / 2;
+	maxRe = mousePos.x + width / 2;
+	minIm = mousePos.y - height / 2;
+	maxIm = mousePos.y + height / 2;
 }
